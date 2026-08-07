@@ -1,0 +1,294 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ---------- CORE IDENTITY ----------
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  phone        String?  @unique
+  passwordHash String?
+  publicKey    String // E2E encryption public key, generated on-device
+  avatarUrl    String   @default("")
+  about        String   @default("Hey there! I'm using Flare")
+  ageConfirmed Boolean  @default(false) // self-declared 18+ checkbox at signup
+  online       Boolean  @default(false)
+  lastSeen     DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  chatParticipants ChatParticipant[]
+  messagesSent     Message[]       @relation("MessageSender")
+  messageKeys      MessageKey[]
+  messageStatuses  MessageStatus[]
+  reactions        Reaction[]
+  blockedByMe      BlockedUser[]   @relation("Blocker")
+  blockedMe        BlockedUser[]   @relation("Blocked")
+  contactsOwned    Contact[]       @relation("ContactOwner")
+  callsMade        CallLog[]       @relation("Caller")
+  callsReceived    CallLog[]       @relation("Callee")
+  statuses         Status[]
+  statusViews      StatusView[]
+  datingProfile    DatingProfile?
+  swipesGiven      Swipe[]         @relation("Swiper")
+  swipesReceived   Swipe[]         @relation("SwipedUser")
+  matchesAsA       Match[]         @relation("MatchUserA")
+  matchesAsB       Match[]         @relation("MatchUserB")
+}
+
+// ---------- CHAT (WhatsApp layer) ----------
+
+model Chat {
+  id            String   @id @default(uuid())
+  isGroup       Boolean  @default(false)
+  groupName     String   @default("")
+  groupAvatar   String   @default("")
+  createdAt     DateTime @default(now())
+  lastMessageAt DateTime @default(now())
+
+  participants         ChatParticipant[]
+  messages             Message[]
+  callLogs              CallLog[]
+  streak               Streak?
+  disappearingSetting  DisappearingSetting?
+  match                Match?
+}
+
+model ChatParticipant {
+  id       String   @id @default(uuid())
+  chatId   String
+  userId   String
+  isAdmin  Boolean  @default(false)
+  joinedAt DateTime @default(now())
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([chatId, userId])
+}
+
+model Message {
+  id         String      @id @default(uuid())
+  chatId     String
+  senderId   String
+  type       MessageType @default(TEXT)
+  ciphertext String // AES-encrypted body, server never sees plaintext
+  iv         String // AES-GCM IV, base64
+  createdAt  DateTime    @default(now())
+
+  chat      Chat            @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender    User            @relation("MessageSender", fields: [senderId], references: [id])
+  keys      MessageKey[]
+  status    MessageStatus[]
+  media     Media[]
+  reactions Reaction[]
+
+  @@index([chatId])
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+  VOICE_NOTE
+  CALL
+}
+
+model MessageKey {
+  id           String @id @default(uuid())
+  messageId    String
+  userId       String
+  encryptedKey String
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+}
+
+model MessageStatus {
+  id          String    @id @default(uuid())
+  messageId   String
+  userId      String
+  deliveredAt DateTime?
+  readAt      DateTime?
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+}
+
+model Media {
+  id           String   @id @default(uuid())
+  messageId    String
+  url          String
+  mimeType     String
+  size         Int
+  thumbnailUrl String?
+  duration     Int?
+  createdAt    DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+model Reaction {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+}
+
+model BlockedUser {
+  id        String   @id @default(uuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+}
+
+model Contact {
+  id            String  @id @default(uuid())
+  ownerId       String
+  contactUserId String
+  nickname      String?
+
+  owner User @relation("ContactOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, contactUserId])
+}
+
+model CallLog {
+  id        String     @id @default(uuid())
+  chatId    String
+  callerId  String
+  calleeId  String
+  type      CallType
+  status    CallStatus
+  startedAt DateTime   @default(now())
+  endedAt   DateTime?
+
+  chat   Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  caller User @relation("Caller", fields: [callerId], references: [id])
+  callee User @relation("Callee", fields: [calleeId], references: [id])
+}
+
+enum CallType {
+  VOICE
+  VIDEO
+}
+
+enum CallStatus {
+  MISSED
+  ANSWERED
+  DECLINED
+}
+
+// ---------- SNAP layer: stories, streaks, disappearing messages ----------
+
+model Status {
+  id        String   @id @default(uuid())
+  userId    String
+  mediaUrl  String
+  caption   String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  views StatusView[]
+}
+
+model StatusView {
+  id       String   @id @default(uuid())
+  statusId String
+  viewerId String
+  viewedAt DateTime @default(now())
+
+  status Status @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  viewer User   @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@unique([statusId, viewerId])
+}
+
+model Streak {
+  id             String   @id @default(uuid())
+  chatId         String   @unique
+  currentCount   Int      @default(0)
+  lastActivityAt DateTime @default(now())
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+}
+
+model DisappearingSetting {
+  id             String  @id @default(uuid())
+  chatId         String  @unique
+  enabled        Boolean @default(false)
+  expiryDuration Int     @default(86400)
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+}
+
+// ---------- DATING layer (Bumble-style) ----------
+
+model DatingProfile {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  bio          String   @default("")
+  photos       String[] @default([])
+  prompts      Json?
+  gender       String?
+  interestedIn String?
+  latitude     Float?
+  longitude    Float?
+  visible      Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Swipe {
+  id           String         @id @default(uuid())
+  swiperId     String
+  swipedUserId String
+  direction    SwipeDirection
+  createdAt    DateTime       @default(now())
+
+  swiper     User @relation("Swiper", fields: [swiperId], references: [id], onDelete: Cascade)
+  swipedUser User @relation("SwipedUser", fields: [swipedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([swiperId, swipedUserId])
+}
+
+enum SwipeDirection {
+  LIKE
+  PASS
+  SUPER_LIKE
+}
+
+model Match {
+  id        String   @id @default(uuid())
+  userAId   String
+  userBId   String
+  chatId    String   @unique
+  matchedAt DateTime @default(now())
+
+  userA User @relation("MatchUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB User @relation("MatchUserB", fields: [userBId], references: [id], onDelete: Cascade)
+  chat  Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@unique([userAId, userBId])
+}

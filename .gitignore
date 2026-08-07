@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+flare-backend/node_modules/
+flare-mobile/node_modules/
+
+# Environment secrets - never commit these
+flare-backend/.env
+flare-mobile/.env
+
+# Uploaded media (local dev files, not source code)
+flare-backend/uploads/*
+!flare-backend/uploads/.gitkeep
+
+# Expo / React Native
+flare-mobile/.expo/
+flare-mobile/.expo-shared/
+
+# Logs & OS junk
+*.log
+.DS_Store
+Thumbs.db
