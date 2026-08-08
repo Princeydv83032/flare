@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 import { ChatAPI } from "../services/api";
@@ -34,9 +35,13 @@ export default function HomeScreen({ navigation }) {
     }
   }, []);
 
-  useEffect(() => {
-    loadChats();
-  }, [loadChats]);
+  // Re-fetches every time this screen comes back into focus - e.g. after
+  // creating a new chat from NewChatScreen and navigating back here.
+  useFocusEffect(
+    useCallback(() => {
+      loadChats();
+    }, [loadChats]),
+  );
 
   function onRefresh() {
     setRefreshing(true);
@@ -50,19 +55,30 @@ export default function HomeScreen({ navigation }) {
     >
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Chats</Text>
-        <TouchableOpacity
-          style={[
-            styles.logoutBtn,
-            { backgroundColor: colors.card, borderColor: colors.borderAccent },
-          ]}
-          onPress={logout}
-        >
-          <Text
-            style={{ color: colors.pink, fontSize: 12.5, fontWeight: "600" }}
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={[styles.iconBtn, { backgroundColor: colors.pink }]}
+            onPress={() => navigation.navigate("NewChat")}
           >
-            Log out
-          </Text>
-        </TouchableOpacity>
+            <Text style={styles.iconBtnText}>+</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.logoutBtn,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.borderAccent,
+              },
+            ]}
+            onPress={logout}
+          >
+            <Text
+              style={{ color: colors.pink, fontSize: 12.5, fontWeight: "600" }}
+            >
+              Log out
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -73,7 +89,7 @@ export default function HomeScreen({ navigation }) {
             No chats yet
           </Text>
           <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
-            Your conversations will show up here once you start chatting.
+            Tap + to search for someone and start a conversation.
           </Text>
         </View>
       ) : (
@@ -91,7 +107,7 @@ export default function HomeScreen({ navigation }) {
           renderItem={({ item }) => (
             <ChatListItem
               chat={item}
-              onPress={() => console.log("Open chat:", item.id)}
+              onPress={() => console.log("Open chat:", item.id)} // Chat Thread screen comes next
             />
           )}
         />
@@ -111,6 +127,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   headerTitle: { fontSize: 22, fontWeight: "700" },
+  headerActions: { flexDirection: "row", gap: 8, alignItems: "center" },
+  iconBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconBtnText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   logoutBtn: {
     borderWidth: 1,
     borderRadius: 16,

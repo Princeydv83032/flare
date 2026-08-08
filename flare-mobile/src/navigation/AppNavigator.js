@@ -7,6 +7,7 @@ import SplashScreen from "../screens/SplashScreen";
 import LoginScreen from "../screens/LoginScreen";
 import OnboardingScreen from "../screens/OnboardingScreen";
 import HomeScreen from "../screens/HomeScreen";
+import NewChatScreen from "../screens/NewChatScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -23,7 +24,14 @@ export default function AppNavigator() {
         ) : !user.onboarded ? (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         ) : (
-          <Stack.Screen name="Home" component={HomeScreen} />
+          <>
+            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen
+              name="NewChat"
+              component={NewChatScreen}
+              options={{ presentation: "modal" }}
+            />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
