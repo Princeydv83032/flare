@@ -1,75 +1,128 @@
-import React from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
+  FlatList,
   TouchableOpacity,
-  SafeAreaView,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
+import { ChatAPI } from "../services/api";
+import ChatListItem from "../components/ChatListItem";
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }) {
   const { colors } = useTheme();
   const { user, logout } = useAuth();
+
+  const [chats, setChats] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadChats = useCallback(async () => {
+    try {
+      const { data } = await ChatAPI.list();
+      setChats(data.chats);
+    } catch (err) {
+      console.log("Failed to load chats:", err.message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadChats();
+  }, [loadChats]);
+
+  function onRefresh() {
+    setRefreshing(true);
+    loadChats();
+  }
 
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
+      edges={["top", "left", "right"]}
     >
-      <View style={[styles.avatar, { backgroundColor: colors.pink }]}>
-        <Text style={styles.avatarText}>
-          {user?.username?.[0]?.toUpperCase() || "?"}
-        </Text>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Chats</Text>
+        <TouchableOpacity
+          style={[
+            styles.logoutBtn,
+            { backgroundColor: colors.card, borderColor: colors.borderAccent },
+          ]}
+          onPress={logout}
+        >
+          <Text
+            style={{ color: colors.pink, fontSize: 12.5, fontWeight: "600" }}
+          >
+            Log out
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      <Text style={[styles.title, { color: colors.text }]}>
-        You're logged in! 🎉
-      </Text>
-      <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-        @{user?.username}
-      </Text>
-      <Text style={[styles.detail, { color: colors.textSecondary }]}>
-        {user?.phone}
-      </Text>
-
-      <TouchableOpacity
-        style={[
-          styles.button,
-          { backgroundColor: colors.card, borderColor: colors.borderAccent },
-        ]}
-        onPress={logout}
-      >
-        <Text style={[styles.buttonText, { color: colors.pink }]}>Log out</Text>
-      </TouchableOpacity>
+      {loading ? (
+        <ActivityIndicator style={{ marginTop: 40 }} color={colors.pink} />
+      ) : chats.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>
+            No chats yet
+          </Text>
+          <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
+            Your conversations will show up here once you start chatting.
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={chats}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 8 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.pink}
+            />
+          }
+          renderItem={({ item }) => (
+            <ChatListItem
+              chat={item}
+              onPress={() => console.log("Open chat:", item.id)}
+            />
+          )}
+        />
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1 },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  headerTitle: { fontSize: 22, fontWeight: "700" },
+  logoutBtn: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+  },
+  emptyState: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: 40,
   },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  avatarText: { color: "#fff", fontSize: 28, fontWeight: "700" },
-  title: { fontSize: 20, fontWeight: "700", marginBottom: 6 },
-  subtitle: { fontSize: 15, marginBottom: 4 },
-  detail: { fontSize: 13, marginBottom: 32 },
-  button: {
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-  },
-  buttonText: { fontWeight: "600", fontSize: 14 },
+  emptyTitle: { fontSize: 16, fontWeight: "600", marginBottom: 6 },
+  emptySubtitle: { fontSize: 13, textAlign: "center" },
 });
