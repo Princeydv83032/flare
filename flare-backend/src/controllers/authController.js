@@ -1,18 +1,18 @@
-const jwt = require('jsonwebtoken');
-const prisma = require('../config/prisma');
-const { generateOtp, verifyOtp } = require('../utils/otp');
+const jwt = require("jsonwebtoken");
+const prisma = require("../config/prisma");
+const { generateOtp, verifyOtp } = require("../utils/otp");
 
 function signToken(userId) {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '30d' });
+  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "30d" });
 }
 
 exports.requestOtp = async (req, res) => {
   try {
     const { phone } = req.body;
-    if (!phone) return res.status(400).json({ error: 'phone is required' });
+    if (!phone) return res.status(400).json({ error: "phone is required" });
 
     generateOtp(phone);
-    res.json({ message: 'OTP sent' });
+    res.json({ message: "OTP sent" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -21,20 +21,25 @@ exports.requestOtp = async (req, res) => {
 exports.verifyOtpAndAuth = async (req, res) => {
   try {
     const { phone, code, publicKey, ageConfirmed } = req.body;
-    if (!phone || !code) return res.status(400).json({ error: 'phone and code are required' });
+    if (!phone || !code)
+      return res.status(400).json({ error: "phone and code are required" });
 
     const ok = verifyOtp(phone, code);
-    if (!ok) return res.status(401).json({ error: 'Invalid or expired code' });
+    if (!ok) return res.status(401).json({ error: "Invalid or expired code" });
 
     let user = await prisma.user.findUnique({ where: { phone } });
     let isNewUser = false;
 
     if (!user) {
       if (!publicKey) {
-        return res.status(400).json({ error: 'publicKey is required to create a new account' });
+        return res
+          .status(400)
+          .json({ error: "publicKey is required to create a new account" });
       }
       if (!ageConfirmed) {
-        return res.status(400).json({ error: 'You must confirm you are 18 or older' });
+        return res
+          .status(400)
+          .json({ error: "You must confirm you are 18 or older" });
       }
       const randomSuffix = Math.random().toString(36).slice(2, 8);
       user = await prisma.user.create({
@@ -59,6 +64,7 @@ exports.verifyOtpAndAuth = async (req, res) => {
         avatarUrl: user.avatarUrl,
         about: user.about,
         publicKey: user.publicKey,
+        onboarded: user.onboarded,
       },
     });
   } catch (err) {
@@ -68,12 +74,12 @@ exports.verifyOtpAndAuth = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const { username, avatarUrl, about } = req.body;
+    const { username, avatarUrl, about, onboarded } = req.body;
 
     if (username) {
       const existing = await prisma.user.findUnique({ where: { username } });
       if (existing && existing.id !== req.userId) {
-        return res.status(409).json({ error: 'Username already taken' });
+        return res.status(409).json({ error: "Username already taken" });
       }
     }
 
@@ -83,6 +89,7 @@ exports.updateProfile = async (req, res) => {
         ...(username && { username }),
         ...(avatarUrl !== undefined && { avatarUrl }),
         ...(about !== undefined && { about }),
+        ...(onboarded !== undefined && { onboarded }),
       },
     });
 
@@ -96,21 +103,36 @@ exports.me = async (req, res) => {
   const user = await prisma.user.findUnique({
     where: { id: req.userId },
     select: {
-      id: true, username: true, phone: true, avatarUrl: true,
-      about: true, publicKey: true, online: true, lastSeen: true,
+      id: true,
+      username: true,
+      phone: true,
+      avatarUrl: true,
+      about: true,
+      publicKey: true,
+      onboarded: true,
+      online: true,
+      lastSeen: true,
     },
   });
   res.json({ user });
 };
 
 exports.searchUsers = async (req, res) => {
-  const q = req.query.q || '';
+  const q = req.query.q || "";
   const users = await prisma.user.findMany({
     where: {
-      username: { contains: q, mode: 'insensitive' },
+      username: { contains: q, mode: "insensitive" },
       NOT: { id: req.userId },
     },
-    select: { id: true, username: true, avatarUrl: true, about: true, publicKey: true, online: true, lastSeen: true },
+    select: {
+      id: true,
+      username: true,
+      avatarUrl: true,
+      about: true,
+      publicKey: true,
+      online: true,
+      lastSeen: true,
+    },
     take: 20,
   });
   res.json({ users });

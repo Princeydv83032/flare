@@ -18,6 +18,7 @@ model User {
   avatarUrl    String   @default("")
   about        String   @default("Hey there! I'm using Flare")
   ageConfirmed Boolean  @default(false) // self-declared 18+ checkbox at signup
+  onboarded    Boolean  @default(false)
   online       Boolean  @default(false)
   lastSeen     DateTime @default(now())
   createdAt    DateTime @default(now())
