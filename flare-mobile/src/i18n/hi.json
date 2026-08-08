@@ -1,0 +1,21 @@
+{
+  "welcome": "Flare में आपका स्वागत है",
+  "tagline": "स्पार्क करो। स्नैप करो। कहो।",
+  "getStarted": "शुरू करें",
+  "haveAccount": "खाता है? साइन इन करें",
+  "phoneNumber": "फ़ोन नंबर",
+  "sendOtp": "OTP भेजें",
+  "verifyContinue": "सत्यापित करें और जारी रखें",
+  "ageConfirm": "मैं पुष्टि करता/करती हूं कि मैं 18 वर्ष या उससे अधिक का हूं",
+  "noIdRequired": "शुरू करने के लिए किसी ID की आवश्यकता नहीं",
+  "codeSentTo": "कोड भेजा गया",
+  "chats": "चैट्स",
+  "discover": "डिस्कवर",
+  "stories": "स्टोरीज़",
+  "profile": "प्रोफ़ाइल",
+  "typeMessage": "मैसेज लिखें",
+  "logOut": "लॉग आउट",
+  "datingMode": "डेटिंग मोड",
+  "language": "भाषा",
+  "theme": "थीम"
+}

@@ -1,0 +1,21 @@
+{
+  "welcome": "Welcome to Flare",
+  "tagline": "Spark it. Snap it. Say it.",
+  "getStarted": "Get started",
+  "haveAccount": "Have an account? Sign in",
+  "phoneNumber": "Phone number",
+  "sendOtp": "Send OTP",
+  "verifyContinue": "Verify & continue",
+  "ageConfirm": "I confirm I'm 18 years or older",
+  "noIdRequired": "No ID required to get started",
+  "codeSentTo": "Code sent to",
+  "chats": "Chats",
+  "discover": "Discover",
+  "stories": "Stories",
+  "profile": "Profile",
+  "typeMessage": "Type a message",
+  "logOut": "Log out",
+  "datingMode": "Dating mode",
+  "language": "Language",
+  "theme": "Theme"
+}
