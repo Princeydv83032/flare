@@ -105,9 +105,9 @@ export default function HomeScreen({ navigation }) {
             />
           }
           renderItem={({ item }) => {
-            const otherUser = item.isGroup
-              ? null
-              : item.participants.find((p) => p.user.id !== user.id)?.user;
+            const participants = item.participants
+              .filter((p) => p.user.id !== user.id)
+              .map((p) => p.user);
 
             return (
               <ChatListItem
@@ -115,7 +115,9 @@ export default function HomeScreen({ navigation }) {
                 onPress={() =>
                   navigation.navigate("ChatThread", {
                     chatId: item.id,
-                    otherUser,
+                    participants,
+                    isGroup: item.isGroup,
+                    groupName: item.groupName,
                     streakCount: item.streak?.currentCount || 0,
                   })
                 }

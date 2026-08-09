@@ -27,7 +27,10 @@ import {
 import MessageBubble from "../components/MessageBubble";
 
 export default function ChatThreadScreen({ route, navigation }) {
-  const { chatId, otherUser, streakCount } = route.params;
+  // `participants` = everyone in this chat EXCEPT me. One person for a
+  // direct chat, multiple for a group.
+  const { chatId, participants, isGroup, groupName, streakCount } =
+    route.params;
   const { colors } = useTheme();
   const { user } = useAuth();
 
@@ -36,7 +39,9 @@ export default function ChatThreadScreen({ route, navigation }) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [otherTyping, setOtherTyping] = useState(false);
-  const [otherOnline, setOtherOnline] = useState(otherUser?.online || false);
+  const [otherOnline, setOtherOnline] = useState(
+    !isGroup && participants[0]?.online,
+  );
 
   const flatListRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -46,8 +51,6 @@ export default function ChatThreadScreen({ route, navigation }) {
     setTimeout(() => flatListRef.current?.scrollToEnd({ animated }), 80);
   }, []);
 
-  // iOS only - Android handles keyboard resize natively via
-  // "softwareKeyboardLayoutMode": "resize" in app.json instead.
   useEffect(() => {
     if (Platform.OS !== "ios") return;
     const showSub = Keyboard.addListener("keyboardWillShow", () =>
@@ -56,13 +59,20 @@ export default function ChatThreadScreen({ route, navigation }) {
     return () => showSub.remove();
   }, [scrollToEnd]);
 
+  const findParticipant = useCallback(
+    (userId) => participants.find((p) => p.id === userId),
+    [participants],
+  );
+
   const decryptOne = useCallback(
     async (msg) => {
       const senderIsMe = msg.sender.id === user.id;
-      const senderPublicKey = senderIsMe ? user.publicKey : otherUser.publicKey;
+      const senderPublicKey = senderIsMe
+        ? user.publicKey
+        : findParticipant(msg.sender.id)?.publicKey;
       const myKey = msg.keys?.[0];
 
-      if (!myKey) return { ...msg, text: "", failed: true };
+      if (!myKey || !senderPublicKey) return { ...msg, text: "", failed: true };
 
       try {
         const plaintext = decryptMessage({
@@ -79,7 +89,7 @@ export default function ChatThreadScreen({ route, navigation }) {
         return { ...msg, text: "", failed: true };
       }
     },
-    [user, otherUser],
+    [user, findParticipant],
   );
 
   useEffect(() => {
@@ -115,15 +125,15 @@ export default function ChatThreadScreen({ route, navigation }) {
     }
 
     function handleTypingStart({ chatId: incomingChatId, userId }) {
-      if (incomingChatId === chatId && userId === otherUser?.id)
+      if (incomingChatId === chatId && findParticipant(userId))
         setOtherTyping(true);
     }
     function handleTypingStop({ chatId: incomingChatId, userId }) {
-      if (incomingChatId === chatId && userId === otherUser?.id)
+      if (incomingChatId === chatId && findParticipant(userId))
         setOtherTyping(false);
     }
     function handlePresence({ userId, online }) {
-      if (userId === otherUser?.id) setOtherOnline(online);
+      if (!isGroup && participants[0]?.id === userId) setOtherOnline(online);
     }
 
     socket.on("message:new", handleNewMessage);
@@ -138,7 +148,7 @@ export default function ChatThreadScreen({ route, navigation }) {
       socket.off("typing:stop", handleTypingStop);
       socket.off("presence:update", handlePresence);
     };
-  }, [chatId, otherUser, decryptOne, scrollToEnd]);
+  }, [chatId, participants, isGroup, decryptOne, scrollToEnd, findParticipant]);
 
   function handleTextChange(value) {
     setText(value);
@@ -154,9 +164,10 @@ export default function ChatThreadScreen({ route, navigation }) {
 
   async function sendEncrypted(plaintext, type = "TEXT") {
     const mySecretKey = mySecretKeyRef.current;
+    // Wrap the content-key for myself AND every other participant in the chat
     const recipients = [
       { userId: user.id, publicKey: user.publicKey },
-      { userId: otherUser.id, publicKey: otherUser.publicKey },
+      ...participants.map((p) => ({ userId: p.id, publicKey: p.publicKey })),
     ];
     const { ciphertext, iv, keys } = encryptMessage(
       plaintext,
@@ -231,8 +242,17 @@ export default function ChatThreadScreen({ route, navigation }) {
     }
   }
 
-  const displayName = otherUser?.username || "Chat";
+  const displayName = isGroup ? groupName : participants[0]?.username || "Chat";
   const initials = displayName.slice(0, 2).toUpperCase();
+  const statusLine = isGroup
+    ? `${participants.length + 1} members`
+    : otherTyping
+      ? "typing..."
+      : otherOnline
+        ? "online"
+        : streakCount > 0
+          ? `🔥 ${streakCount}`
+          : "";
 
   const messageList = loading ? (
     <ActivityIndicator style={{ marginTop: 40 }} color={colors.pink} />
@@ -250,6 +270,9 @@ export default function ChatThreadScreen({ route, navigation }) {
           type={item.type}
           failed={item.failed}
           isMine={item.sender.id === user.id}
+          senderName={
+            isGroup && item.sender.id !== user.id ? item.sender.username : null
+          }
           time={new Date(item.createdAt).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
@@ -316,12 +339,17 @@ export default function ChatThreadScreen({ route, navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={22} color={colors.pink} />
         </TouchableOpacity>
-        <View style={[styles.avatar, { backgroundColor: colors.pink }]}>
+        <View
+          style={[
+            styles.avatar,
+            { backgroundColor: isGroup ? colors.violet : colors.pink },
+          ]}
+        >
           <Text style={styles.avatarText}>{initials}</Text>
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.headerName, { color: colors.text }]}>
-            @{displayName}
+            {isGroup ? groupName : `@${displayName}`}
           </Text>
           <Text
             style={[
@@ -329,13 +357,7 @@ export default function ChatThreadScreen({ route, navigation }) {
               { color: otherTyping ? colors.pink : colors.textMuted },
             ]}
           >
-            {otherTyping
-              ? "typing..."
-              : otherOnline
-                ? "online"
-                : streakCount > 0
-                  ? `🔥 ${streakCount}`
-                  : ""}
+            {statusLine}
           </Text>
         </View>
       </View>

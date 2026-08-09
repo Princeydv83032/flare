@@ -88,6 +88,17 @@ exports.swipe = async (req, res) => {
   }
 };
 
+exports.getMyDatingProfile = async (req, res) => {
+  try {
+    const profile = await prisma.datingProfile.findUnique({
+      where: { userId: req.userId },
+    });
+    res.json({ profile });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 // Discover deck: dating-visible profiles the current user hasn't swiped on yet.
 exports.getDiscoverDeck = async (req, res) => {
   try {

@@ -58,7 +58,13 @@ export default function DiscoverScreen({ navigation }) {
   function handleGoToChat() {
     const { chatId, otherUser } = matchModal;
     setMatchModal(null);
-    navigation.navigate("ChatThread", { chatId, otherUser, streakCount: 0 });
+    navigation.navigate("ChatThread", {
+      chatId,
+      participants: [otherUser],
+      isGroup: false,
+      groupName: "",
+      streakCount: 0,
+    });
   }
 
   return (

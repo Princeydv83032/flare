@@ -68,7 +68,13 @@ export default function NewChatScreen({ navigation }) {
         <Text style={[styles.headerTitle, { color: colors.text }]}>
           New Chat
         </Text>
-        <View style={{ width: 20 }} />
+        <TouchableOpacity onPress={() => navigation.navigate("NewGroup")}>
+          <Text
+            style={{ color: colors.pink, fontSize: 12.5, fontWeight: "600" }}
+          >
+            New Group
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <TextInput

@@ -49,6 +49,7 @@ export const MatchAPI = {
     api.post("/matches/swipe", { swipedUserId, direction }),
   list: () => api.get("/matches"),
   upsertProfile: (payload) => api.post("/matches/profile", payload),
+  getMyProfile: () => api.get("/matches/profile/me"), // ADD THIS LINE
 };
 
 export const StatusAPI = {

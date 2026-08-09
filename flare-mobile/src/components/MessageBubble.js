@@ -9,6 +9,7 @@ export default function MessageBubble({
   failed,
   type,
   imageBase64,
+  senderName,
 }) {
   const { colors } = useTheme();
 

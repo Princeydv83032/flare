@@ -9,6 +9,8 @@ import OnboardingScreen from "../screens/OnboardingScreen";
 import MainTabs from "./MainTabs";
 import NewChatScreen from "../screens/NewChatScreen";
 import ChatThreadScreen from "../screens/ChatThreadScreen";
+import StoryViewerScreen from "../screens/StoryViewerScreen";
+import NewGroupScreen from "../screens/NewGroupScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -32,7 +34,17 @@ export default function AppNavigator() {
               component={NewChatScreen}
               options={{ presentation: "modal" }}
             />
+            <Stack.Screen
+              name="NewGroup"
+              component={NewGroupScreen}
+              options={{ presentation: "modal" }}
+            />
             <Stack.Screen name="ChatThread" component={ChatThreadScreen} />
+            <Stack.Screen
+              name="StoryViewer"
+              component={StoryViewerScreen}
+              options={{ presentation: "fullScreenModal" }}
+            />
           </>
         )}
       </Stack.Navigator>
