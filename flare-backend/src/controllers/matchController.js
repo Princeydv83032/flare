@@ -1,4 +1,4 @@
-const prisma = require('../config/prisma');
+const prisma = require("../config/prisma");
 
 // Record a swipe. If it's a LIKE/SUPER_LIKE and the other person already
 // liked back, create a Match + auto-create the Chat for them.
@@ -6,7 +6,9 @@ exports.swipe = async (req, res) => {
   try {
     const { swipedUserId, direction } = req.body; // direction: LIKE | PASS | SUPER_LIKE
     if (!swipedUserId || !direction) {
-      return res.status(400).json({ error: 'swipedUserId and direction are required' });
+      return res
+        .status(400)
+        .json({ error: "swipedUserId and direction are required" });
     }
 
     await prisma.swipe.upsert({
@@ -15,16 +17,24 @@ exports.swipe = async (req, res) => {
       create: { swiperId: req.userId, swipedUserId, direction },
     });
 
-    if (direction === 'PASS') {
+    if (direction === "PASS") {
       return res.json({ matched: false });
     }
 
     // Check if the other person already liked us back
     const theirSwipe = await prisma.swipe.findUnique({
-      where: { swiperId_swipedUserId: { swiperId: swipedUserId, swipedUserId: req.userId } },
+      where: {
+        swiperId_swipedUserId: {
+          swiperId: swipedUserId,
+          swipedUserId: req.userId,
+        },
+      },
     });
 
-    const theyLikedUs = theirSwipe && (theirSwipe.direction === 'LIKE' || theirSwipe.direction === 'SUPER_LIKE');
+    const theyLikedUs =
+      theirSwipe &&
+      (theirSwipe.direction === "LIKE" ||
+        theirSwipe.direction === "SUPER_LIKE");
     if (!theyLikedUs) {
       return res.json({ matched: false });
     }
@@ -40,18 +50,39 @@ exports.swipe = async (req, res) => {
 
     const chat = await prisma.chat.create({ data: { isGroup: false } });
     await prisma.chatParticipant.createMany({
-      data: [{ chatId: chat.id, userId: userAId }, { chatId: chat.id, userId: userBId }],
+      data: [
+        { chatId: chat.id, userId: userAId },
+        { chatId: chat.id, userId: userBId },
+      ],
     });
 
     const match = await prisma.match.create({
       data: { userAId, userBId, chatId: chat.id },
       include: {
-        userA: { select: { id: true, username: true, avatarUrl: true } },
-        userB: { select: { id: true, username: true, avatarUrl: true } },
+        userA: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+            publicKey: true,
+          },
+        },
+        userB: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+            publicKey: true,
+          },
+        },
       },
     });
 
-    res.json({ matched: true, match });
+    // Tell the client directly who "the other person" is, so it doesn't
+    // have to figure out userA vs userB itself.
+    const otherUser = match.userAId === req.userId ? match.userB : match.userA;
+
+    res.json({ matched: true, match, otherUser, chatId: chat.id });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -64,11 +95,16 @@ exports.getDiscoverDeck = async (req, res) => {
       where: { swiperId: req.userId },
       select: { swipedUserId: true },
     });
-    const excludeIds = [req.userId, ...alreadySwiped.map((s) => s.swipedUserId)];
+    const excludeIds = [
+      req.userId,
+      ...alreadySwiped.map((s) => s.swipedUserId),
+    ];
 
     const profiles = await prisma.datingProfile.findMany({
       where: { visible: true, userId: { notIn: excludeIds } },
-      include: { user: { select: { id: true, username: true, avatarUrl: true } } },
+      include: {
+        user: { select: { id: true, username: true, avatarUrl: true } },
+      },
       take: 20,
     });
 
@@ -87,7 +123,7 @@ exports.listMyMatches = async (req, res) => {
         userB: { select: { id: true, username: true, avatarUrl: true } },
         chat: true,
       },
-      orderBy: { matchedAt: 'desc' },
+      orderBy: { matchedAt: "desc" },
     });
     res.json({ matches });
   } catch (err) {
@@ -98,12 +134,40 @@ exports.listMyMatches = async (req, res) => {
 // Create or update the current user's dating profile + "Dating mode" visibility
 exports.upsertDatingProfile = async (req, res) => {
   try {
-    const { bio, photos, prompts, gender, interestedIn, visible, latitude, longitude } = req.body;
+    const {
+      bio,
+      photos,
+      prompts,
+      gender,
+      interestedIn,
+      visible,
+      latitude,
+      longitude,
+    } = req.body;
 
     const profile = await prisma.datingProfile.upsert({
       where: { userId: req.userId },
-      update: { bio, photos, prompts, gender, interestedIn, visible, latitude, longitude },
-      create: { userId: req.userId, bio, photos, prompts, gender, interestedIn, visible, latitude, longitude },
+      update: {
+        bio,
+        photos,
+        prompts,
+        gender,
+        interestedIn,
+        visible,
+        latitude,
+        longitude,
+      },
+      create: {
+        userId: req.userId,
+        bio,
+        photos,
+        prompts,
+        gender,
+        interestedIn,
+        visible,
+        latitude,
+        longitude,
+      },
     });
 
     res.json({ profile });

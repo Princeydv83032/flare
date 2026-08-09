@@ -6,8 +6,9 @@ import { useAuth } from "../context/AuthContext";
 import SplashScreen from "../screens/SplashScreen";
 import LoginScreen from "../screens/LoginScreen";
 import OnboardingScreen from "../screens/OnboardingScreen";
-import HomeScreen from "../screens/HomeScreen";
+import MainTabs from "./MainTabs";
 import NewChatScreen from "../screens/NewChatScreen";
+import ChatThreadScreen from "../screens/ChatThreadScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -25,12 +26,13 @@ export default function AppNavigator() {
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         ) : (
           <>
-            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen
               name="NewChat"
               component={NewChatScreen}
               options={{ presentation: "modal" }}
             />
+            <Stack.Screen name="ChatThread" component={ChatThreadScreen} />
           </>
         )}
       </Stack.Navigator>

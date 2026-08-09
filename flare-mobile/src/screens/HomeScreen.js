@@ -104,12 +104,24 @@ export default function HomeScreen({ navigation }) {
               tintColor={colors.pink}
             />
           }
-          renderItem={({ item }) => (
-            <ChatListItem
-              chat={item}
-              onPress={() => console.log("Open chat:", item.id)} // Chat Thread screen comes next
-            />
-          )}
+          renderItem={({ item }) => {
+            const otherUser = item.isGroup
+              ? null
+              : item.participants.find((p) => p.user.id !== user.id)?.user;
+
+            return (
+              <ChatListItem
+                chat={item}
+                onPress={() =>
+                  navigation.navigate("ChatThread", {
+                    chatId: item.id,
+                    otherUser,
+                    streakCount: item.streak?.currentCount || 0,
+                  })
+                }
+              />
+            );
+          }}
         />
       )}
     </SafeAreaView>

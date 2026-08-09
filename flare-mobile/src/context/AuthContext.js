@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthAPI } from "../services/api";
 import { getOrCreateKeyPair } from "../services/encryption";
+import { connectSocket, disconnectSocket } from "../services/socket";
 
 const AuthContext = createContext(null);
 
@@ -16,6 +17,7 @@ export function AuthProvider({ children }) {
         try {
           const { data } = await AuthAPI.me();
           setUser(data.user);
+          await connectSocket();
         } catch (err) {
           await AsyncStorage.removeItem("flare_token");
         }
@@ -41,7 +43,8 @@ export function AuthProvider({ children }) {
     });
     await AsyncStorage.setItem("flare_token", data.token);
     setUser(data.user);
-    return data; // { token, isNewUser, user }
+    await connectSocket();
+    return data;
   }
 
   async function updateProfile(payload) {
@@ -52,9 +55,8 @@ export function AuthProvider({ children }) {
 
   async function logout() {
     await AsyncStorage.removeItem("flare_token");
+    disconnectSocket();
     setUser(null);
-    // Note: we deliberately do NOT delete the on-device private key on logout,
-    // so re-logging in on the same device can still decrypt old messages.
   }
 
   return (
