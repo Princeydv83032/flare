@@ -5,6 +5,7 @@ const ctrl = require('../controllers/chatController');
 
 router.use(auth);
 router.get('/', ctrl.listMyChats);
+router.get('/streaks', ctrl.getMyStreaks);
 router.post('/direct', ctrl.getOrCreateDirectChat);
 router.post('/group', ctrl.createGroup);
 router.post('/group/add-member', ctrl.addGroupMember);

@@ -24,6 +24,7 @@ export const AuthAPI = {
 
 export const ChatAPI = {
   list: () => api.get("/chats"),
+  getStreaks: () => api.get('/chats/streaks'),
   getOrCreateDirect: (userId) => api.post("/chats/direct", { userId }),
   createGroup: (groupName, participantIds) =>
     api.post("/chats/group", { groupName, participantIds }),

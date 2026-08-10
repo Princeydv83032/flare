@@ -121,6 +121,26 @@ exports.addGroupMember = async (req, res) => {
   }
 };
 
+exports.getMyStreaks = async (req, res) => {
+  try {
+    const chats = await prisma.chat.findMany({
+      where: {
+        participants: { some: { userId: req.userId } },
+        streak: { currentCount: { gt: 0 } },
+      },
+      include: {
+        participants: participantSelect,
+        streak: true,
+      },
+      orderBy: { streak: { currentCount: 'desc' } },
+    });
+
+    res.json({ chats });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.setDisappearing = async (req, res) => {
   try {
     const { chatId, enabled, expiryDuration } = req.body;

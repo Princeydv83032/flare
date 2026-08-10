@@ -56,12 +56,15 @@ export default function HomeScreen({ navigation }) {
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Chats</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={[styles.iconBtn, { backgroundColor: colors.pink }]}
-            onPress={() => navigation.navigate("NewChat")}
-          >
-            <Text style={styles.iconBtnText}>+</Text>
-          </TouchableOpacity>
+  <TouchableOpacity onPress={() => navigation.navigate('Streaks')}>
+    <Text style={{ fontSize: 20 }}>🔥</Text>
+  </TouchableOpacity>
+  <TouchableOpacity
+    style={[styles.iconBtn, { backgroundColor: colors.pink }]}
+    onPress={() => navigation.navigate('NewChat')}
+  >
+    <Text style={styles.iconBtnText}>+</Text>
+  </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.logoutBtn,
