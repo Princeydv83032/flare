@@ -13,7 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../context/ThemeContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
-import { MatchAPI } from "../services/api";
+import { MatchAPI, ChatAPI } from "../services/api";
 
 export default function ProfileScreen({ navigation }) {
   const { colors, preference, setThemePreference } = useTheme();
@@ -22,6 +22,7 @@ export default function ProfileScreen({ navigation }) {
 
   const [datingMode, setDatingMode] = useState(false);
   const [savingDating, setSavingDating] = useState(false);
+  const [stats, setStats] = useState({ streaks: 0, matches: 0 });
 
   useEffect(() => {
     (async () => {
@@ -30,6 +31,23 @@ export default function ProfileScreen({ navigation }) {
         setDatingMode(data.profile?.visible || false);
       } catch (err) {
         console.log("Failed to load dating profile:", err.message);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [streaksRes, matchesRes] = await Promise.all([
+          ChatAPI.getStreaks(),
+          MatchAPI.list(),
+        ]);
+        setStats({
+          streaks: streaksRes.data.chats.length,
+          matches: matchesRes.data.matches.length,
+        });
+      } catch (err) {
+        console.log("Failed to load profile stats:", err.message);
       }
     })();
   }, []);
@@ -72,6 +90,25 @@ export default function ProfileScreen({ navigation }) {
           <Text style={[styles.phone, { color: colors.textMuted }]}>
             {user?.phone}
           </Text>
+        </View>
+
+        <View style={styles.statsRow}>
+          <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.statNumber, { color: colors.pink }]}>
+              {stats.streaks}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>
+              Streaks
+            </Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.statNumber, { color: colors.violet }]}>
+              {stats.matches}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>
+              Matches
+            </Text>
+          </View>
         </View>
 
         {/* Dating */}
@@ -180,12 +217,14 @@ export default function ProfileScreen({ navigation }) {
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </TouchableOpacity>
         <TouchableOpacity
-  style={[styles.linkRow, { borderBottomColor: colors.border }]}
-  onPress={() => navigation.navigate('BlockedAccounts')}
->
-  <Text style={[styles.rowLabel, { color: colors.text }]}>Blocked accounts</Text>
-  <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-</TouchableOpacity>
+          style={[styles.linkRow, { borderBottomColor: colors.border }]}
+          onPress={() => navigation.navigate("BlockedAccounts")}
+        >
+          <Text style={[styles.rowLabel, { color: colors.text }]}>
+            Blocked accounts
+          </Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={[
@@ -242,6 +281,10 @@ const styles = StyleSheet.create({
   avatarText: { color: "#fff", fontSize: 26, fontWeight: "700" },
   username: { fontSize: 17, fontWeight: "700" },
   phone: { fontSize: 13, marginTop: 3 },
+  statsRow: { flexDirection: "row", gap: 10, marginHorizontal: 16, marginBottom: 6 },
+  statCard: { flex: 1, borderRadius: 14, padding: 14, alignItems: "center" },
+  statNumber: { fontSize: 20, fontWeight: "700" },
+  statLabel: { fontSize: 11, marginTop: 2 },
   sectionLabel: {
     fontSize: 11,
     fontWeight: "600",

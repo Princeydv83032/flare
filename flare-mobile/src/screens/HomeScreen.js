@@ -12,7 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
-import { ChatAPI } from "../services/api";
+import { ChatAPI, StatusAPI } from "../services/api";
 import ChatListItem from "../components/ChatListItem";
 
 export default function HomeScreen({ navigation }) {
@@ -22,6 +22,7 @@ export default function HomeScreen({ navigation }) {
   const [chats, setChats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [storyGroups, setStoryGroups] = useState([]);
 
   const loadChats = useCallback(async () => {
     try {
@@ -35,17 +36,33 @@ export default function HomeScreen({ navigation }) {
     }
   }, []);
 
+  const loadStories = useCallback(async () => {
+    try {
+      const { data } = await StatusAPI.feed();
+      const grouped = data.statuses.reduce((acc, s) => {
+        if (!acc[s.user.id]) acc[s.user.id] = { user: s.user, stories: [] };
+        acc[s.user.id].stories.push(s);
+        return acc;
+      }, {});
+      setStoryGroups(Object.values(grouped));
+    } catch (err) {
+      console.log("Failed to load stories:", err.message);
+    }
+  }, []);
+
   // Re-fetches every time this screen comes back into focus - e.g. after
   // creating a new chat from NewChatScreen and navigating back here.
   useFocusEffect(
     useCallback(() => {
       loadChats();
-    }, [loadChats]),
+      loadStories();
+    }, [loadChats, loadStories]),
   );
 
   function onRefresh() {
     setRefreshing(true);
     loadChats();
+    loadStories();
   }
 
   return (
@@ -56,15 +73,15 @@ export default function HomeScreen({ navigation }) {
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Chats</Text>
         <View style={styles.headerActions}>
-  <TouchableOpacity onPress={() => navigation.navigate('Streaks')}>
-    <Text style={{ fontSize: 20 }}>🔥</Text>
-  </TouchableOpacity>
-  <TouchableOpacity
-    style={[styles.iconBtn, { backgroundColor: colors.pink }]}
-    onPress={() => navigation.navigate('NewChat')}
-  >
-    <Text style={styles.iconBtnText}>+</Text>
-  </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate("Streaks")}>
+            <Text style={{ fontSize: 20 }}>🔥</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.iconBtn, { backgroundColor: colors.pink }]}
+            onPress={() => navigation.navigate("NewChat")}
+          >
+            <Text style={styles.iconBtnText}>+</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.logoutBtn,
@@ -83,6 +100,53 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       </View>
+
+      <FlatList
+        horizontal
+        data={storyGroups}
+        keyExtractor={(item) => item.user.id}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.storiesRow}
+        ListHeaderComponent={
+          <TouchableOpacity
+            style={styles.storyItem}
+            onPress={() => navigation.navigate("StoryCamera")}
+          >
+            <View
+              style={[
+                styles.storyAddCircle,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              <Text style={{ fontSize: 16, color: colors.pink }}>+</Text>
+            </View>
+            <Text style={[styles.storyLabel, { color: colors.textMuted }]}>
+              You
+            </Text>
+          </TouchableOpacity>
+        }
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.storyItem}
+            onPress={() =>
+              navigation
+                .getParent()
+                ?.navigate("StoryViewer", { stories: item.stories, author: item.user })
+            }
+          >
+            <View style={[styles.storyRing, { borderColor: colors.pink }]}>
+              <View style={[styles.storyAvatar, { backgroundColor: colors.violet }]}>
+                <Text style={styles.storyAvatarText}>
+                  {item.user.username.slice(0, 2).toUpperCase()}
+                </Text>
+              </View>
+            </View>
+            <Text style={[styles.storyLabel, { color: colors.text }]} numberOfLines={1}>
+              {item.user.username}
+            </Text>
+          </TouchableOpacity>
+        )}
+      />
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.pink} />
@@ -159,6 +223,34 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 14,
   },
+  storiesRow: { paddingHorizontal: 16, gap: 12, paddingBottom: 12 },
+  storyItem: { alignItems: "center", width: 60 },
+  storyAddCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  storyRing: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  storyAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  storyAvatarText: { color: "#fff", fontWeight: "700", fontSize: 11 },
+  storyLabel: { fontSize: 10, fontWeight: "600", marginTop: 4 },
   emptyState: {
     flex: 1,
     alignItems: "center",

@@ -50,46 +50,9 @@ export default function StoriesScreen({ navigation }) {
   }, {});
   const groups = Object.values(groupedByUser);
 
-  async function handleAddStory() {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) {
-      return Alert.alert(
-        "Permission needed",
-        "We need camera access to add a story.",
-      );
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      quality: 0.6,
-      allowsEditing: true,
-      aspect: [9, 16],
-    });
-
-    if (result.canceled) return;
-
-    setUploading(true);
-    try {
-      const asset = result.assets[0];
-      const formData = new FormData();
-      formData.append("file", {
-        uri: asset.uri,
-        name: "story.jpg",
-        type: "image/jpeg",
-      });
-      const { data: uploadData } = await MessageAPI.upload(formData);
-
-      await StatusAPI.create(`${BASE_URL}${uploadData.url}`, "");
-      loadFeed();
-    } catch (err) {
-      Alert.alert(
-        "Failed to post story",
-        err?.response?.data?.error || err.message,
-      );
-    } finally {
-      setUploading(false);
-    }
-  }
-
+  function handleAddStory() {
+  navigation.navigate('StoryCamera');
+}
   function openViewer(group) {
     navigation.navigate("StoryViewer", {
       stories: group.stories,

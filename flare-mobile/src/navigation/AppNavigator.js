@@ -13,7 +13,7 @@ import StoryViewerScreen from "../screens/StoryViewerScreen";
 import NewGroupScreen from "../screens/NewGroupScreen";
 import BlockedAccountsScreen from '../screens/BlockedAccountsScreen';
 import StreaksScreen from '../screens/StreaksScreen';
-
+import StoryCameraScreen from '../screens/StoryCameraScreen';
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
@@ -44,6 +44,7 @@ export default function AppNavigator() {
             <Stack.Screen name="ChatThread" component={ChatThreadScreen} />
             <Stack.Screen name="BlockedAccounts" component={BlockedAccountsScreen} />
             <Stack.Screen name="Streaks" component={StreaksScreen} />
+            <Stack.Screen name="StoryCamera" component={StoryCameraScreen} options={{ presentation: 'fullScreenModal' }} />
             <Stack.Screen
               name="StoryViewer"
               component={StoryViewerScreen}
