@@ -3,7 +3,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Use your computer's LAN IP when testing on a physical device (not "localhost").
 // Find it with `ipconfig` on Windows (look for IPv4 Address, something like 192.168.x.x).
-export const BASE_URL = "http://192.168.1.12:5000";
+// export const BASE_URL = "http://192.168.1.12:5000";
+export const BASE_URL = 'http://192.168.1.11:5000';
 
 const api = axios.create({ baseURL: `${BASE_URL}/api` });
 
@@ -62,5 +63,9 @@ export const CallAPI = {
   log: (payload) => api.post("/calls", payload),
   history: () => api.get("/calls"),
 };
-
+export const BlockAPI = {
+  list: () => api.get('/blocks'),
+  block: (userId) => api.post('/blocks', { userId }),
+  unblock: (userId) => api.post('/blocks/unblock', { userId }),
+};
 export default api;

@@ -19,6 +19,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 import { MessageAPI } from "../services/api";
 import { getSocket } from "../services/socket";
+import { BlockAPI } from '../services/api';
 import {
   getMyPrivateKey,
   encryptMessage,
@@ -212,6 +213,30 @@ export default function ChatThreadScreen({ route, navigation }) {
     }
   }
 
+  function handleBlock() {
+  if (isGroup) return; // blocking is only for 1-on-1 chats
+  const other = participants[0];
+  Alert.alert(
+    `Block @${other.username}?`,
+    "They won't be able to message or match with you anymore.",
+    [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Block',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await BlockAPI.block(other.id);
+            navigation.goBack();
+          } catch (err) {
+            Alert.alert('Error', err?.response?.data?.error || err.message);
+          }
+        },
+      },
+    ]
+  );
+}
+
   async function handlePickImage() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
@@ -359,6 +384,11 @@ export default function ChatThreadScreen({ route, navigation }) {
           >
             {statusLine}
           </Text>
+          {!isGroup && (
+  <TouchableOpacity onPress={handleBlock}>
+    <Ionicons name="ellipsis-vertical" size={18} color={colors.textMuted} />
+  </TouchableOpacity>
+)}
         </View>
       </View>
 

@@ -14,6 +14,10 @@ exports.getOrCreateDirectChat = async (req, res) => {
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ error: 'userId required' });
 
+    if (await isBlockedEitherWay(req.userId, userId)) {
+      return res.status(403).json({ error: 'Cannot start a chat with this user' });
+    }
+
     const existing = await prisma.chat.findFirst({
       where: {
         isGroup: false,

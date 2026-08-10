@@ -11,6 +11,7 @@ import NewChatScreen from "../screens/NewChatScreen";
 import ChatThreadScreen from "../screens/ChatThreadScreen";
 import StoryViewerScreen from "../screens/StoryViewerScreen";
 import NewGroupScreen from "../screens/NewGroupScreen";
+import BlockedAccountsScreen from '../screens/BlockedAccountsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -40,6 +41,7 @@ export default function AppNavigator() {
               options={{ presentation: "modal" }}
             />
             <Stack.Screen name="ChatThread" component={ChatThreadScreen} />
+            <Stack.Screen name="BlockedAccounts" component={BlockedAccountsScreen} />
             <Stack.Screen
               name="StoryViewer"
               component={StoryViewerScreen}

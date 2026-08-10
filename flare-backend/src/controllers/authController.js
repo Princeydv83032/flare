@@ -27,31 +27,38 @@ exports.verifyOtpAndAuth = async (req, res) => {
     const ok = verifyOtp(phone, code);
     if (!ok) return res.status(401).json({ error: "Invalid or expired code" });
 
-    let user = await prisma.user.findUnique({ where: { phone } });
-    let isNewUser = false;
+   let user = await prisma.user.findUnique({ where: { phone } });
+let isNewUser = false;
 
-    if (!user) {
-      if (!publicKey) {
-        return res
-          .status(400)
-          .json({ error: "publicKey is required to create a new account" });
-      }
-      if (!ageConfirmed) {
-        return res
-          .status(400)
-          .json({ error: "You must confirm you are 18 or older" });
-      }
-      const randomSuffix = Math.random().toString(36).slice(2, 8);
-      user = await prisma.user.create({
-        data: {
-          phone,
-          username: `user_${randomSuffix}`,
-          publicKey,
-          ageConfirmed: true,
-        },
-      });
-      isNewUser = true;
-    }
+if (!user) {
+  if (!publicKey) {
+    return res.status(400).json({ error: "publicKey is required to create a new account" });
+  }
+  if (!ageConfirmed) {
+    return res.status(400).json({ error: "You must confirm you are 18 or older" });
+  }
+  const randomSuffix = Math.random().toString(36).slice(2, 8);
+  user = await prisma.user.create({
+    data: {
+      phone,
+      username: `user_${randomSuffix}`,
+      publicKey,
+      ageConfirmed: true,
+    },
+  });
+  isNewUser = true;
+} else if (publicKey && publicKey !== user.publicKey) {
+  // This device generated a new keypair (new install, new device, cleared
+  // storage, etc.) - sync the server's public key to match, so future
+  // messages encrypt correctly for THIS device's private key.
+  // Tradeoff: old message history becomes permanently undecryptable, since
+  // it was encrypted for the previous key. Same limitation real apps hit
+  // without dedicated multi-device key backup/sync (out of scope for MVP).
+  user = await prisma.user.update({
+    where: { id: user.id },
+    data: { publicKey },
+  });
+}
 
     const token = signToken(user.id);
     res.json({
@@ -119,10 +126,16 @@ exports.me = async (req, res) => {
 
 exports.searchUsers = async (req, res) => {
   const q = req.query.q || "";
+
+  const blocks = await prisma.blockedUser.findMany({
+    where: { OR: [{ blockerId: req.userId }, { blockedId: req.userId }] },
+  });
+  const excludedIds = blocks.map((b) => (b.blockerId === req.userId ? b.blockedId : b.blockerId));
+
   const users = await prisma.user.findMany({
     where: {
       username: { contains: q, mode: "insensitive" },
-      NOT: { id: req.userId },
+      NOT: { id: { in: [req.userId, ...excludedIds] } },
     },
     select: {
       id: true,

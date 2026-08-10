@@ -15,7 +15,7 @@ import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { MatchAPI } from "../services/api";
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }) {
   const { colors, preference, setThemePreference } = useTheme();
   const { lang, changeLanguage, t } = useLanguage();
   const { user, logout } = useAuth();
@@ -180,13 +180,12 @@ export default function ProfileScreen() {
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.linkRow, { borderBottomColor: colors.border }]}
-        >
-          <Text style={[styles.rowLabel, { color: colors.text }]}>
-            Blocked accounts
-          </Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-        </TouchableOpacity>
+  style={[styles.linkRow, { borderBottomColor: colors.border }]}
+  onPress={() => navigation.navigate('BlockedAccounts')}
+>
+  <Text style={[styles.rowLabel, { color: colors.text }]}>Blocked accounts</Text>
+  <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+</TouchableOpacity>
 
         <TouchableOpacity
           style={[
